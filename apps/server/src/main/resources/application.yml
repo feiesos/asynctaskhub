@@ -2,10 +2,13 @@ server:
   port: 8080
 
 spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:asynctaskhub}
-    username: ${DB_USER:app}
-    password: ${DB_PASS:app123}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASS:postgres}
     driver-class-name: org.postgresql.Driver
   data:
     redis:
