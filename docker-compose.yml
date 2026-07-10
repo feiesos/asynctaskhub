@@ -1,0 +1,56 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: asynctaskhub
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app123
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.4
+    command: sh mqnamesrv
+    ports:
+      - "9876:9876"
+
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.4
+    command: sh mqbroker -n rocketmq-namesrv:9876
+    depends_on:
+      - rocketmq-namesrv
+    ports:
+      - "10911:10911"
+
+  server:
+    build:
+      context: ./apps/server
+    depends_on:
+      - postgres
+      - redis
+      - rocketmq-broker
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/asynctaskhub
+      SPRING_REDIS_HOST: redis
+      ROCKETMQ_NAME_SERVER: rocketmq-namesrv:9876
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./apps/web
+    depends_on:
+      - server
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
