@@ -32,7 +32,8 @@ services:
 
   server:
     build:
-      context: ./apps/server
+      context: .
+      dockerfile: apps/server/Dockerfile
     depends_on:
       - postgres
       - redis
@@ -46,7 +47,8 @@ services:
 
   web:
     build:
-      context: ./apps/web
+      context: .
+      dockerfile: apps/web/Dockerfile
     depends_on:
       - server
     ports:
