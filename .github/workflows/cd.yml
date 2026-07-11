@@ -1,0 +1,16 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    name: Placeholder
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Todo
+        run: echo "CD pipeline coming soon"
