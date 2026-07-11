@@ -9,27 +9,34 @@ on:
       - main
 
 jobs:
-  backend-test:
-    name: Backend Test
+
+  server-test:
+    name: Server Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4.2.0
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
           cache: maven
 
-      - name: Run backend tests
+      - name: Make mvnw executable
         working-directory: apps/server
-        run: mvn test
+        run: chmod +x mvnw
 
-  frontend-build:
-    name: Frontend Build
+      - name: Run server tests
+        working-directory: apps/server
+        run: ./mvnw test
+
+  web-build:
+    name: Web Build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4.2.2
@@ -45,8 +52,8 @@ jobs:
           node-version: '20'
           cache: pnpm
 
-      - name: Install frontend dependencies
+      - name: Install web dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build frontend
+      - name: Build web
         run: pnpm --filter web build

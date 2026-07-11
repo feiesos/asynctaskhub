@@ -1,5 +1,6 @@
 package org.feiesos.asynctaskhub.mapper;
 
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -16,7 +18,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+    "spring.autoconfigure.exclude=org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration"
+})
 @Testcontainers
 class TaskMapperTest {
 
@@ -32,6 +36,9 @@ class TaskMapperTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
     }
+
+    @MockitoBean
+    private RocketMQTemplate rocketMQTemplate;
 
     @Autowired
     private TaskMapper taskMapper;
