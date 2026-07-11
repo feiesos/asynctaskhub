@@ -7,7 +7,9 @@ import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.feiesos.asynctaskhub.service.TaskService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +32,17 @@ public class TaskController {
     public TaskCreateResponse createTask(@Valid @RequestBody TaskCreateRequest request) {
         UUID taskId = taskService.createTask(request.getTaskType(), request.getFilePath(), request.getParams());
         return new TaskCreateResponse(taskId);
+    }
+
+    @PostMapping("/{taskId}/retry")
+    public ResponseEntity<?> retryTask(@PathVariable UUID taskId) {
+        try {
+            TaskService.TaskRetryResponse response = taskService.retryTask(taskId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", e.getMessage()));
+        }
     }
 
     public static class TaskCreateRequest {
