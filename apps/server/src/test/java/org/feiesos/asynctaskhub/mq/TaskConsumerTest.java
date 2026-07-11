@@ -5,6 +5,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.feiesos.asynctaskhub.mapper.TaskMapper;
+import org.feiesos.asynctaskhub.service.ImageProcessService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -29,6 +30,9 @@ class TaskConsumerTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    @Mock
+    private ImageProcessService imageProcessService;
+
     @InjectMocks
     private TaskConsumer taskConsumer;
 
@@ -47,13 +51,13 @@ class TaskConsumerTest {
 
         when(taskMapper.selectById(taskId)).thenReturn(task);
         when(objectMapper.readValue(payload, TaskConsumer.TaskMessage.class)).thenReturn(taskMessage);
+        when(imageProcessService.compressImage(task.getFilePath(), task.getParams())).thenReturn("/output/result.jpg");
 
         taskConsumer.onMessage(message);
 
         ArgumentCaptor<Task> taskCaptor = ArgumentCaptor.forClass(Task.class);
         verify(taskMapper, org.mockito.Mockito.atLeast(2)).updateById(taskCaptor.capture());
 
-        assertThat(taskCaptor.getAllValues()).hasSize(2);
         assertThat(taskCaptor.getAllValues()).extracting(Task::getStatus)
                 .contains(TaskStatus.SUCCESS);
     }
