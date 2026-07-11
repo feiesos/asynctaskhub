@@ -16,10 +16,13 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TaskServiceTest {
@@ -55,6 +58,38 @@ class TaskServiceTest {
         assertThat(savedTask.getFilePath()).isEqualTo("/tmp/input.jpg");
         assertThat(savedTask.getStatus()).isEqualTo(TaskStatus.PENDING);
         assertThat(savedTask.getParams()).containsEntry("width", 800);
+    }
+
+    @Test
+    void retryTaskResetsStatusAndSendsMessage() {
+        UUID taskId = UUID.randomUUID();
+        Task task = new Task();
+        task.setTaskId(taskId);
+        task.setTaskType("IMAGE_RESIZE");
+        task.setStatus(TaskStatus.PENDING);
+        task.setRetryCount(0);
+
+        when(taskMapper.update(any(), any())).thenReturn(1);
+        when(taskMapper.selectById(taskId)).thenReturn(task);
+
+        TaskService.TaskRetryResponse response = taskService.retryTask(taskId);
+
+        assertThat(response.taskId()).isEqualTo(taskId);
+        assertThat(response.status()).isEqualTo(TaskStatus.PENDING);
+        verify(taskProducer).send(taskId, "IMAGE_RESIZE", task.getParams());
+    }
+
+    @Test
+    void retryTaskRejectsWhenStatusIsNotFailed() {
+        UUID taskId = UUID.randomUUID();
+
+        when(taskMapper.update(any(), any())).thenReturn(0);
+
+        assertThatThrownBy(() -> taskService.retryTask(taskId))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not in FAILED status");
+
+        verify(taskProducer, never()).send(any(), any(), any());
     }
 
     @Test

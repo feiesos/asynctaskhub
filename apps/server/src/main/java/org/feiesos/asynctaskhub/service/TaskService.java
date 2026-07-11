@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import java.util.Map;
 import java.util.UUID;
 
@@ -52,5 +53,31 @@ public class TaskService {
         }
 
         return taskId;
+    }
+
+    public TaskRetryResponse retryTask(UUID taskId) {
+        int rows = taskMapper.update(
+                null,
+                new UpdateWrapper<Task>()
+                        .set("status", TaskStatus.PENDING)
+                        .set("retry_count", 0)
+                        .set("error_msg", null)
+                        .eq("task_id", taskId)
+                        .eq("status", TaskStatus.FAILED)
+        );
+
+        if (rows == 0) {
+            throw new IllegalStateException("Task " + taskId + " is not in FAILED status, cannot retry");
+        }
+
+        Task task = taskMapper.selectById(taskId);
+
+        taskProducer.send(task.getTaskId(), task.getTaskType(), task.getParams());
+
+        log.info("Task retry triggered, taskId={}, taskType={}", taskId, task.getTaskType());
+        return new TaskRetryResponse(task.getTaskId(), task.getTaskType(), task.getStatus());
+    }
+
+    public record TaskRetryResponse(UUID taskId, String taskType, TaskStatus status) {
     }
 }

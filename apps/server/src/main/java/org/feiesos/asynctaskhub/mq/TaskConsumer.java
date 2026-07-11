@@ -10,6 +10,8 @@ import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.feiesos.asynctaskhub.mapper.TaskMapper;
 import org.feiesos.asynctaskhub.service.ImageProcessService;
+import org.feiesos.asynctaskhub.service.NonRetryableException;
+import org.feiesos.asynctaskhub.service.RetryableException;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
@@ -19,7 +21,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@RocketMQMessageListener(consumerGroup = "async-task-consumer", topic = "image-process-topic")
+// maxReconsumeTimes=3 是演示用途的调低配置，生产环境建议 16
+@RocketMQMessageListener(consumerGroup = "async-task-consumer", topic = "image-process-topic", maxReconsumeTimes = 3)
 public class TaskConsumer implements RocketMQListener<MessageExt> {
 
     private final TaskMapper taskMapper;
@@ -44,6 +47,7 @@ public class TaskConsumer implements RocketMQListener<MessageExt> {
             return;
         }
 
+        task.setRetryCount(message.getReconsumeTimes());
         task.setStatus(TaskStatus.PROCESSING);
         taskMapper.updateById(task);
 
@@ -53,11 +57,17 @@ public class TaskConsumer implements RocketMQListener<MessageExt> {
             task.setStatus(TaskStatus.SUCCESS);
             taskMapper.updateById(task);
             log.info("Task processed successfully, taskId={}, resultPath={}", taskId, resultPath);
-        } catch (Exception e) {
-            log.error("Failed to process task, taskId={}", taskId, e);
+        } catch (NonRetryableException e) {
+            log.warn("Non-retryable error for taskId={}: {}", taskId, e.getMessage());
             task.setStatus(TaskStatus.FAILED);
             task.setErrorMsg(e.getMessage());
             taskMapper.updateById(task);
+        } catch (RetryableException e) {
+            log.warn("Retryable error for taskId={}, reconsumeTimes={}: {}", taskId, message.getReconsumeTimes(), e.getMessage());
+            task.setStatus(TaskStatus.FAILED);
+            task.setErrorMsg(e.getMessage());
+            taskMapper.updateById(task);
+            throw e;
         }
     }
 

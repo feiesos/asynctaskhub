@@ -17,7 +17,7 @@ public class ImageProcessService {
     public String compressImage(String filePath, Map<String, Object> params) {
         File inputFile = new File(filePath);
         if (!inputFile.exists()) {
-            throw new IllegalArgumentException("Input file not found: " + filePath);
+            throw new NonRetryableException("Input file not found: " + filePath);
         }
 
         int quality = DEFAULT_QUALITY;
@@ -35,7 +35,7 @@ public class ImageProcessService {
                     .toFile(outputFile);
             log.info("Image compressed: input={}, output={}, quality={}", filePath, outputPath, quality);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to compress image: " + filePath, e);
+            throw new RetryableException("Failed to compress image: " + filePath, e);
         }
 
         return outputPath;

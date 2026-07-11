@@ -36,7 +36,7 @@ class ImageProcessServiceTest {
         String nonExistent = tempDir.resolve("nope.jpg").toString();
 
         assertThatThrownBy(() -> service.compressImage(nonExistent, Map.of("quality", 80)))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(NonRetryableException.class)
                 .hasMessageContaining("not found");
     }
 }
