@@ -1,5 +1,7 @@
+import UploadPage from './pages/UploadPage';
+
 function App() {
-  return <div>AsyncTaskHub</div>
+  return <UploadPage />;
 }
 
-export default App
+export default App;
