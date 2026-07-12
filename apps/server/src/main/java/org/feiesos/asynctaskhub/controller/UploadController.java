@@ -39,7 +39,7 @@ public class UploadController {
         Path destination = uploadDir.resolve(storedName);
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
 
-        String filePath = Paths.get("uploads").resolve(storedName).toString().replace('\\', '/');
+        String filePath = destination.toAbsolutePath().normalize().toString().replace('\\', '/');
         return ResponseEntity.ok(Map.of("filePath", filePath));
     }
 }

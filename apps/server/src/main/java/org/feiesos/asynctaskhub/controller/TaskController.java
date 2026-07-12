@@ -5,17 +5,21 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.service.TaskService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,6 +30,19 @@ import java.util.UUID;
 public class TaskController {
 
     private final TaskService taskService;
+
+    @GetMapping
+    public TaskPageResponse listTasks(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        return taskService.listTasks(page, pageSize);
+    }
+
+    @GetMapping("/{taskId}")
+    public ResponseEntity<Task> getTask(@PathVariable UUID taskId) {
+        Task task = taskService.getTask(taskId);
+        return task == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(task);
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -47,7 +64,7 @@ public class TaskController {
 
     public static class TaskCreateRequest {
         @NotBlank(message = "taskType is required")
-        @Pattern(regexp = "IMAGE_RESIZE|IMAGE_FILTER|IMAGE_COMPRESS", message = "taskType must be one of IMAGE_RESIZE, IMAGE_FILTER, IMAGE_COMPRESS")
+        @Pattern(regexp = "COMPRESS|THUMBNAIL|WATERMARK|IMAGE_RESIZE|IMAGE_FILTER|IMAGE_COMPRESS", message = "taskType must be one of COMPRESS, THUMBNAIL, WATERMARK, IMAGE_RESIZE, IMAGE_FILTER, IMAGE_COMPRESS")
         private String taskType;
 
         @NotBlank(message = "filePath is required")
@@ -82,5 +99,13 @@ public class TaskController {
     }
 
     public record TaskCreateResponse(UUID taskId) {
+    }
+
+    public record TaskPageResponse(
+            List<Task> records,
+            long total,
+            long size,
+            long current,
+            long pages) {
     }
 }

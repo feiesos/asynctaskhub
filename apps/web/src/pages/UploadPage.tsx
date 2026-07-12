@@ -9,7 +9,11 @@ const TASK_OPTIONS: Array<{ value: TaskType; label: string; description: string 
   { value: 'WATERMARK', label: 'Watermark', description: '给图片添加水印' },
 ];
 
-function UploadPage() {
+interface UploadPageProps {
+  onViewTasks?: () => void;
+}
+
+function UploadPage({ onViewTasks }: UploadPageProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [taskType, setTaskType] = useState<TaskType>('COMPRESS');
   const [isDragging, setIsDragging] = useState(false);
@@ -198,9 +202,13 @@ function UploadPage() {
                       <span className="rounded-full border border-emerald-700/40 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400">
                         {taskId}
                       </span>
-                      <a href="/tasks" className="text-sm font-medium text-blue-400 hover:text-blue-300">
+                      <button
+                        type="button"
+                        onClick={onViewTasks}
+                        className="text-sm font-medium text-blue-400 hover:text-blue-300"
+                      >
                         查看任务列表
-                      </a>
+                      </button>
                     </div>
                   ) : null}
                 </div>

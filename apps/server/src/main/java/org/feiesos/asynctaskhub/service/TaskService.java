@@ -1,7 +1,11 @@
 package org.feiesos.asynctaskhub.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.feiesos.asynctaskhub.controller.TaskController;
 import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.feiesos.asynctaskhub.mapper.TaskMapper;
@@ -11,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,6 +25,31 @@ public class TaskService {
 
     private final TaskMapper taskMapper;
     private final TaskProducer taskProducer;
+
+    public TaskController.TaskPageResponse listTasks(int page, int pageSize) {
+        int safePage = Math.max(page, 1);
+        int safePageSize = Math.max(pageSize, 1);
+
+        Page<Task> taskPage = new Page<>(safePage, safePageSize);
+        LambdaQueryWrapper<Task> queryWrapper = new LambdaQueryWrapper<Task>()
+                .orderByDesc(Task::getCreateTime);
+        taskMapper.selectPage(taskPage, queryWrapper);
+
+        return new TaskController.TaskPageResponse(
+                taskPage.getRecords(),
+                taskPage.getTotal(),
+                taskPage.getSize(),
+                taskPage.getCurrent(),
+                taskPage.getPages()
+        );
+    }
+
+    public Task getTask(UUID taskId) {
+        if (taskId == null) {
+            return null;
+        }
+        return taskMapper.selectById(taskId);
+    }
 
     @Transactional
     public UUID createTask(String taskType, String filePath, Map<String, Object> params) {
