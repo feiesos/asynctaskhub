@@ -22,10 +22,6 @@ mybatis-plus:
     db-config:
       id-type: auto
 
-# ── RocketMQ 消费者重试配置 ──
-# maxReconsumeTimes=3 是演示用途的调低配置，方便快速触发死信队列。
-# 生产环境建议保持 Broker 默认值 16，或至少 >= 5。
-# 实际配置在 @RocketMQMessageListener(maxReconsumeTimes = 3) 上设置。
 rocketmq:
   name-server: ${ROCKETMQ_NAMESRV:localhost:9876}
   producer:
