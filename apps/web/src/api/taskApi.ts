@@ -28,6 +28,23 @@ export interface CreateTaskResponse {
   taskId: string;
 }
 
+export interface TaskItem {
+  taskId: string;
+  taskType: string;
+  status: string;
+  createTime: string;
+  resultPath?: string;
+  errorMsg?: string;
+}
+
+export interface TaskListResponse {
+  records: TaskItem[];
+  total: number;
+  size: number;
+  current: number;
+  pages: number;
+}
+
 export interface UploadResponse {
   filePath: string;
 }
@@ -47,6 +64,26 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
 
 export async function createTask(payload: CreateTaskPayload): Promise<CreateTaskResponse> {
   const { data } = await api.post<CreateTaskResponse>('/tasks', payload);
+  return data;
+}
+
+export async function getTaskList(page = 1, pageSize = 20): Promise<TaskListResponse> {
+  const { data } = await api.get<TaskListResponse>('/tasks', {
+    params: {
+      page,
+      pageSize,
+    },
+  });
+  return data;
+}
+
+export async function getTask(taskId: string): Promise<TaskItem> {
+  const { data } = await api.get<TaskItem>(`/tasks/${taskId}`);
+  return data;
+}
+
+export async function retryTask(taskId: string): Promise<{ taskId: string }> {
+  const { data } = await api.post<{ taskId: string }>(`/tasks/${taskId}/retry`);
   return data;
 }
 
