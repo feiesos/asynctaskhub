@@ -5,10 +5,10 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.feiesos.asynctaskhub.common.ApiResponse;
 import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.service.TaskService;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,34 +32,27 @@ public class TaskController {
     private final TaskService taskService;
 
     @GetMapping
-    public TaskPageResponse listTasks(
+    public ApiResponse<TaskPageResponse> listTasks(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
-        return taskService.listTasks(page, pageSize);
+        return ApiResponse.ok(taskService.listTasks(page, pageSize));
     }
 
     @GetMapping("/{taskId}")
-    public ResponseEntity<Task> getTask(@PathVariable UUID taskId) {
-        Task task = taskService.getTask(taskId);
-        return task == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(task);
+    public ApiResponse<Task> getTask(@PathVariable UUID taskId) {
+        return ApiResponse.ok(taskService.getTask(taskId));
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TaskCreateResponse createTask(@Valid @RequestBody TaskCreateRequest request) {
+    public ApiResponse<TaskCreateResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
         UUID taskId = taskService.createTask(request.getTaskType(), request.getFilePath(), request.getParams());
-        return new TaskCreateResponse(taskId);
+        return ApiResponse.ok(new TaskCreateResponse(taskId));
     }
 
     @PostMapping("/{taskId}/retry")
-    public ResponseEntity<?> retryTask(@PathVariable UUID taskId) {
-        try {
-            TaskService.TaskRetryResponse response = taskService.retryTask(taskId);
-            return ResponseEntity.ok(response);
-        } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", e.getMessage()));
-        }
+    public ApiResponse<TaskService.TaskRetryResponse> retryTask(@PathVariable UUID taskId) {
+        return ApiResponse.ok(taskService.retryTask(taskId));
     }
 
     public static class TaskCreateRequest {

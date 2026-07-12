@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.feiesos.asynctaskhub.common.BusinessException;
+import org.feiesos.asynctaskhub.common.ResourceNotFoundException;
 import org.feiesos.asynctaskhub.controller.TaskController;
 import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
@@ -45,10 +47,11 @@ public class TaskService {
     }
 
     public Task getTask(UUID taskId) {
-        if (taskId == null) {
-            return null;
+        Task task = taskMapper.selectById(taskId);
+        if (task == null) {
+            throw new ResourceNotFoundException("Task not found: " + taskId);
         }
-        return taskMapper.selectById(taskId);
+        return task;
     }
 
     @Transactional
@@ -95,7 +98,7 @@ public class TaskService {
         );
 
         if (rows == 0) {
-            throw new IllegalStateException("Task " + taskId + " is not in FAILED status, cannot retry");
+            throw new BusinessException(400, "Task " + taskId + " is not in FAILED status, cannot retry");
         }
 
         Task task = taskMapper.selectById(taskId);
