@@ -1,0 +1,2 @@
+ALTER TABLE task
+ADD COLUMN compensation_count INTEGER NOT NULL DEFAULT 0;
