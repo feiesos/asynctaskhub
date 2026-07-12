@@ -1,7 +1,10 @@
 package org.feiesos.asynctaskhub.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.feiesos.asynctaskhub.common.BusinessException;
+import org.feiesos.asynctaskhub.common.ResourceNotFoundException;
 import org.feiesos.asynctaskhub.config.GlobalExceptionHandler;
+import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.feiesos.asynctaskhub.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,9 +16,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,6 +56,71 @@ class TaskControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.taskId").value(taskId.toString()))
                 .andExpect(jsonPath("$.data.status").value("PENDING"));
+    }
+
+    @Test
+    void getTaskReturns200WhenTaskExists() throws Exception {
+        UUID taskId = UUID.randomUUID();
+        Task task = new Task();
+        task.setTaskId(taskId);
+        task.setTaskType("WATERMARK");
+        task.setStatus(TaskStatus.PENDING);
+
+        when(taskService.getTask(taskId)).thenReturn(task);
+
+        mockMvc.perform(get("/api/tasks/{taskId}", taskId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.taskId").value(taskId.toString()))
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
+    }
+
+    @Test
+    void getTaskReturns404WhenTaskNotFound() throws Exception {
+        UUID taskId = UUID.randomUUID();
+
+        when(taskService.getTask(taskId)).thenThrow(new ResourceNotFoundException("Task not found: " + taskId));
+
+        mockMvc.perform(get("/api/tasks/{taskId}", taskId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("Task not found: " + taskId));
+    }
+
+    @Test
+    void listTasksReturnsPagedResponse() throws Exception {
+        Task task = new Task();
+        task.setTaskId(UUID.randomUUID());
+        task.setTaskType("COMPRESS");
+        task.setStatus(TaskStatus.PENDING);
+        List<Task> records = List.of(task);
+
+        when(taskService.listTasks(anyInt(), anyInt()))
+                .thenReturn(new TaskController.TaskPageResponse(records, 1, 20, 1, 1));
+
+        mockMvc.perform(get("/api/tasks"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.records[0].taskId").value(task.getTaskId().toString()))
+                .andExpect(jsonPath("$.data.total").value(1));
+    }
+
+    @Test
+    void createTaskReturns201WithTaskId() throws Exception {
+        UUID taskId = UUID.randomUUID();
+        when(taskService.createTask("COMPRESS", "/input.jpg", Map.of("quality", 80)))
+                .thenReturn(taskId);
+
+        mockMvc.perform(post("/api/tasks")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new ObjectMapper().writeValueAsString(Map.of(
+                                "taskType", "COMPRESS",
+                                "filePath", "/input.jpg",
+                                "params", Map.of("quality", 80)
+                        ))))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.taskId").value(taskId.toString()));
     }
 
     @Test

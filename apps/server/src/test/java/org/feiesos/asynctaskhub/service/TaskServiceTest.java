@@ -1,6 +1,7 @@
 package org.feiesos.asynctaskhub.service;
 
 import org.feiesos.asynctaskhub.common.BusinessException;
+import org.feiesos.asynctaskhub.common.ResourceNotFoundException;
 import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.feiesos.asynctaskhub.mapper.TaskMapper;
@@ -91,6 +92,48 @@ class TaskServiceTest {
                 .hasMessageContaining("not in FAILED status");
 
         verify(taskProducer, never()).send(any(), any(), any());
+    }
+
+    @Test
+    void getTaskReturnsTaskWhenExists() {
+        UUID taskId = UUID.randomUUID();
+        Task task = new Task();
+        task.setTaskId(taskId);
+        task.setTaskType("WATERMARK");
+        task.setStatus(TaskStatus.PENDING);
+
+        when(taskMapper.selectById(taskId)).thenReturn(task);
+
+        Task result = taskService.getTask(taskId);
+
+        assertThat(result.getTaskId()).isEqualTo(taskId);
+        assertThat(result.getTaskType()).isEqualTo("WATERMARK");
+    }
+
+    @Test
+    void getTaskThrowsResourceNotFoundExceptionWhenNotExists() {
+        UUID taskId = UUID.randomUUID();
+
+        when(taskMapper.selectById(taskId)).thenReturn(null);
+
+        assertThatThrownBy(() -> taskService.getTask(taskId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Task not found");
+    }
+
+    @Test
+    void createTaskUsesEmptyMapWhenParamsIsNull() {
+        doAnswer(invocation -> {
+            Task task = invocation.getArgument(0);
+            task.setTaskId(UUID.randomUUID());
+            return 1;
+        }).when(taskMapper).insert(any(Task.class));
+
+        taskService.createTask("THUMBNAIL", "/path/to/file.jpg", null);
+
+        ArgumentCaptor<Task> captor = ArgumentCaptor.forClass(Task.class);
+        verify(taskMapper).insert(captor.capture());
+        assertThat(captor.getValue().getParams()).isEmpty();
     }
 
     @Test

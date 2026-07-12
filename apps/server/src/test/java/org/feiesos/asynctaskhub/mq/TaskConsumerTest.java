@@ -1,5 +1,6 @@
 package org.feiesos.asynctaskhub.mq;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.feiesos.asynctaskhub.entity.Task;
@@ -22,10 +23,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -164,5 +167,20 @@ class TaskConsumerTest {
 
         verify(imageProcessService, times(1)).compressImage(task.getFilePath(), task.getParams());
         verify(taskMapper, times(2)).updateById(task);
+    }
+
+    @Test
+    void onMessageSkipsProcessingOnJsonParseFailure() throws Exception {
+        MessageExt message = new MessageExt();
+        message.setBody("invalid json".getBytes(StandardCharsets.UTF_8));
+
+        when(objectMapper.readValue("invalid json", TaskConsumer.TaskMessage.class))
+                .thenThrow(new JsonProcessingException("unparseable") {});
+
+        assertThatCode(() -> taskConsumer.onMessage(message))
+                .doesNotThrowAnyException();
+
+        verify(taskMapper, never()).selectById(any());
+        verify(redisTemplate, never()).opsForValue();
     }
 }
