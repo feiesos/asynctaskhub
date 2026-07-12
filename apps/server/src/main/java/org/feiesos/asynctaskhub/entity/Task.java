@@ -31,6 +31,8 @@ public class Task {
 
     private Integer retryCount;
 
+    private Integer compensationCount;
+
     private String errorMsg;
 
     private LocalDateTime createTime;
