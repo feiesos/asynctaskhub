@@ -6,10 +6,17 @@ const api: AxiosInstance = axios.create({
 });
 
 api.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError<{ error?: string; message?: string }>) => {
+  (response) => {
+    if (response.data && typeof response.data === 'object' && 'code' in response.data) {
+      if (response.data.code !== 200) {
+        return Promise.reject(new Error(response.data.message || 'Request failed'));
+      }
+      response.data = response.data.data;
+    }
+    return response;
+  },
+  (error: AxiosError<{ code?: number; message?: string }>) => {
     const message =
-      error.response?.data?.error ||
       error.response?.data?.message ||
       error.message ||
       'Request failed';

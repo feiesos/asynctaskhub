@@ -1,5 +1,7 @@
 package org.feiesos.asynctaskhub.controller;
 
+import org.feiesos.asynctaskhub.common.BusinessException;
+import org.feiesos.asynctaskhub.config.GlobalExceptionHandler;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.feiesos.asynctaskhub.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +31,9 @@ class TaskControllerTest {
     @BeforeEach
     void setUp() {
         TaskController controller = new TaskController(taskService);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test
@@ -43,8 +47,8 @@ class TaskControllerTest {
         mockMvc.perform(post("/api/tasks/{taskId}/retry", taskId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.taskId").value(taskId.toString()))
-                .andExpect(jsonPath("$.status").value("PENDING"));
+                .andExpect(jsonPath("$.data.taskId").value(taskId.toString()))
+                .andExpect(jsonPath("$.data.status").value("PENDING"));
     }
 
     @Test
@@ -52,11 +56,11 @@ class TaskControllerTest {
         UUID taskId = UUID.randomUUID();
 
         when(taskService.retryTask(taskId))
-                .thenThrow(new IllegalStateException("Task " + taskId + " is not in FAILED status, cannot retry"));
+                .thenThrow(new BusinessException(400, "Task " + taskId + " is not in FAILED status, cannot retry"));
 
         mockMvc.perform(post("/api/tasks/{taskId}/retry", taskId)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("Task " + taskId + " is not in FAILED status, cannot retry"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Task " + taskId + " is not in FAILED status, cannot retry"));
     }
 }

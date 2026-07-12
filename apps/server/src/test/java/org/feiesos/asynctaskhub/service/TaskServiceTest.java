@@ -1,5 +1,6 @@
 package org.feiesos.asynctaskhub.service;
 
+import org.feiesos.asynctaskhub.common.BusinessException;
 import org.feiesos.asynctaskhub.entity.Task;
 import org.feiesos.asynctaskhub.entity.TaskStatus;
 import org.feiesos.asynctaskhub.mapper.TaskMapper;
@@ -86,7 +87,7 @@ class TaskServiceTest {
         when(taskMapper.update(any(), any())).thenReturn(0);
 
         assertThatThrownBy(() -> taskService.retryTask(taskId))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(BusinessException.class)
                 .hasMessageContaining("not in FAILED status");
 
         verify(taskProducer, never()).send(any(), any(), any());

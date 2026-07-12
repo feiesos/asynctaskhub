@@ -1,8 +1,9 @@
 package org.feiesos.asynctaskhub.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.feiesos.asynctaskhub.common.ApiResponse;
+import org.feiesos.asynctaskhub.common.BusinessException;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -24,9 +25,9 @@ import java.util.UUID;
 public class UploadController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Map<String, String>> upload(@RequestParam("file") MultipartFile file) throws IOException {
+    public ApiResponse<Map<String, String>> upload(@RequestParam("file") MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "file is required"));
+            throw new BusinessException(400, "file is required");
         }
 
         String originalFilename = Objects.requireNonNullElse(file.getOriginalFilename(), "upload");
@@ -40,6 +41,6 @@ public class UploadController {
         Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
 
         String filePath = destination.toAbsolutePath().normalize().toString().replace('\\', '/');
-        return ResponseEntity.ok(Map.of("filePath", filePath));
+        return ApiResponse.ok(Map.of("filePath", filePath));
     }
 }
