@@ -23,8 +23,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-// maxReconsumeTimes=3 是演示用途的调低配置，生产环境建议 16
-@RocketMQMessageListener(consumerGroup = "async-task-consumer", topic = "image-process-topic", maxReconsumeTimes = 3)
+@RocketMQMessageListener(consumerGroup = "async-task-consumer", topic = "image-process-topic", maxReconsumeTimes = 16)
 public class TaskConsumer implements RocketMQListener<MessageExt> {
 
     private static final String PROCESSING_LOCK_PREFIX = "task:processing:";
